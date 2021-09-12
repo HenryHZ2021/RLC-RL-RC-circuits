@@ -1,0 +1,593 @@
+/*********************SOLUTIONS GENERATED FROM THE PROGRAM*********************/
+
+/*File RLC Solver.cpp
+	use the quadratic formula with float values
+	
+The program will ask the user to choose from different options based on the circuit configuration.
+1. RL circuit.
+2. RC circuit.
+3. RLC series circuit.
+4. RLC parallel circuit.
+For RLC circuits the program will choose from three different circuits based on the values of R, L and C (Over damped, Under damped or Oscillatory damped).
+For each circuit, the user will be asked about the initial conditions (voltage and/or current in the storage element). Based on the circuit configuration the program will solve the problem and find the voltage or the current across the resistor.
+programmer: Henry Zou		Date: Mar 8, 2021
+*/
+
+////////////////////////////////Part 1/////////////////////////////////////
+
+/*
+Type 1 to start a session and 2 to end the session.
+1
+PLEASE ENTER configuration:
+ 1: para RLC
+ 2: series RLC
+ 3: RL
+ 4. RC
+ Please enter number only.
+3
+PLEASE ENTER response:
+ 1: natural
+ 2: step
+1
+PLEASE ENTER R, L, IL(0) IN OHMS, H, AND A
+40
+0.5
+-4.05
+ i(t) = (-4.050) e^ (-80.000)t A
+ v(t) = (-162.000) e^ -(80.000)t V
+
+**Q2
+Type 1 to start a session and 2 to end the session.
+1
+PLEASE ENTER configuration:
+ 1: para RLC
+ 2: series RLC
+ 3: RL
+ 4. RC
+ Please enter number only.
+4
+PLEASE ENTER response:
+ 1: natural
+ 2: step
+1
+PLEASE ENTER R, C, Vc(0) IN OHMS, H, AND A
+12000
+0.0000033334
+-102
+ v(t) = (-102.000) e^ -(25.000)t V
+ i(t) =  (-0.0085) e^ -(25.000)t A
+
+
+////////////////////////////////Part 2/////////////////////////////////////
+
+Type 1 to start a session and 2 to end the session.
+1
+PLEASE ENTER configuration:
+ 1: para RLC
+ 2: series RLC
+ 3: RL
+ 4. RC
+ Please enter number only.
+1
+PLEASE ENTER R, L, C IN OHMS, H, AND F
+200 0.05 0.0000002
+ALPHA = 12500.000000
+OMEGA = 10000.000000
+PLEASE ENTER response:
+ 1: natural
+ 2: step
+2
+PLEASE ENTER IX(0), If, and VL(0) - note x is the component-EX:L,C
+-0.045 0.06 15
+ R = 200.000000, L = 0.050000, C = 0.000000
+ ix (0) = -0.045000, If = 0.060000, VL(0) = 15.000000
+ S1 = -5000.000000, S2 = -20000.000000
+ A1 = -0.120000, A2 = 0.015000
+ IL(t) = 0.060 + (-0.120)e^(-5000.000)t + 0.015e^(-20000.000)t A
+ vR(t) = 30.000 e^ (-5000.000)t + -15.000e^(-20000.000)t V
+ iR(t) = 0.150 e^ (-5000.000)t + 0.001e^(-20000.000)t V
+
+Type 1 to start a session and 2 to end the session.
+
+////////////////////////////////Part 3/////////////////////////////////////
+
+Type 1 to start a session and 2 to end the session.
+1
+PLEASE ENTER configuration:
+ 1: para RLC
+ 2: series RLC
+ 3: RL
+ 4. RC
+ Please enter number only.
+2
+PLEASE ENTER R, L, C
+250 0.0625 0.00000625
+ALPHA = 2000.000000
+OMEGA = 1600.000000
+PLEASE ENTER response:
+ 1: natural
+ 2: step
+2
+PLEASE ENTER Ic(0), Vx(0) and Vf
+0
+0
+60
+Ic(0) = 0.000000, Vx (0) = 0.000000, Vf = 60.000000
+ R = 250.000000, L = 0.062500, C = 0.0000062
+ S1 = -800.000000, S2 = -3200.000000
+ A1 = -80.000000, A2 = 20.000000
+ Vc(t) = 60.000 + (-80.000)e^(-800.000)t + (20.000)e^(-3200.000)t V
+ I(t) = 0.4000 e^ (-800.000)t + -0.4000e^(-3200.000)t A
+ vR(t) = 100.0000 e^ (-800.000)t + -100.0000e^(-3200.000)t V
+*/
+
+/**********************PROGRAM CODE BELOW ****************************/
+
+//Program can be directly copied to any C compilers to run and test
+
+#include<stdio.h>
+#include <stdlib.h>
+#include<math.h>
+
+int main(void) {
+	
+	/* parallel step OVERDAMPED RLC*/
+	int conf, resp, lpcontrol;
+	float R = 0, L = 0, C = 0,  ALPHA, OMEGA, S1, S2;
+	
+			
+	/*INITIAL CONDITION */
+	//CURRENT
+	float VX0 = 0, IX0 = 0, IF =0, VL0L = 0, VL0 = 0;
+	float DVCDT = 0, IC0C = 0, IC0 = 0, VC0 = 0, VF =0, V0 = 0;
+	float A1 = 0, A2 = 0;
+	float WD = 0, B1, B2;
+	float D1 = 0, D2 = 0;
+	
+	//RL
+	float VS = 0;
+	
+	//RC
+	float IS = 0;
+	float A = 0, B = 0, T = 0 , C1 = 0;
+	
+	printf ("Type 1 to start a session and 2 to end the session. \n");
+	while (1) {
+		
+		scanf ("%d", &lpcontrol);
+		if (lpcontrol == 1){
+			
+			//code										
+			printf ("PLEASE ENTER configuration:\n 1: para RLC \n 2: series RLC \n 3: RL  \n 4. RC \n Please enter number only.\n", conf);
+			scanf ("%d", &conf);
+			
+			// step 1 -para
+			if (conf == 1) {
+				printf ("PLEASE ENTER R, L, C, \n");
+				scanf ("%f %f %f", &R, &L, &C);
+							
+				//para-1/RC					
+				ALPHA = 1 / (2 * (float)R * (float)C);
+				OMEGA = 1 / (sqrt((float) C * (float)L));
+				printf ("ALPHA = %f \n" , ALPHA);
+				printf ("OMEGA = %f \n" , OMEGA);
+				
+				S1 = - ALPHA + sqrt (ALPHA * ALPHA - OMEGA * OMEGA);
+				S2 = - ALPHA - sqrt (ALPHA * ALPHA - OMEGA * OMEGA);
+				
+				//step 1.1 - para, OVERDAMPED
+				if (ALPHA > OMEGA) {
+					//nat or step
+					printf ("PLEASE ENTER response:\n 1: natural\n 2: step \n", resp);
+					scanf ("%d", &resp);
+					
+					//step 1.1.1 - para, overdamped, natural-pon 
+					if (resp == 1) {
+						//printf ("PLEASE ENTER Vf(0) \n");
+						printf ("PLEASE ENTER Vx(0) and ic(0) \n");
+						scanf ("%f %f", &VX0, &IC0);
+									
+						printf (" R = %f, L = %f, C = %f \n", R,L,C);
+						printf (" Vx (0) = %f\n",VX0 );
+						printf (" S1 = %f, S2 = %f\n", S1, S2);
+						
+						IC0C = IC0/C;
+														
+						A1 = (1 * (-IC0C) - S2 * -VX0 )/(1 * S2 - 1 * S1);
+						A2 = ((-VX0) * S1 - (-IC0C) * 1) / (1 * S2 - S1 * 1);
+						printf (" A1 = %f, A2 = %f\n", A1, A2);
+						printf (" V(t) = (%.2f)e^(%.2f)t + %.2fe^(%.2f)t\n", A1, S1, A2, S2);
+						//IR = V(T)/R, IC= dVC(T)/dt*c
+						
+						//i=V/R
+						A = A1 / R;
+						B = A2 / R;
+						printf (" IR(t) = %.3f e^ (%.3f)t + %.3fe^(%.3f)t A\n", A, S1, B, S2);
+						
+					}
+					
+					//step 1.1.2 - para, overdamped, step -pos **~
+					else {
+						
+						//IX0, VL0, CORRECTED CODE
+						printf ("PLEASE ENTER IX(0), If, and VL(0) - note x is the component-EX:L,C \n", IX0, IF, VL0);
+						scanf ("%f %f %f", &IX0, &IF, &VL0);
+			
+						printf (" R = %f, L = %f, C = %f \n", R,L,C);
+						printf (" ix (0) = %f, If = %f, VL(0) = %f\n",IX0, IF, VL0);
+						printf (" S1 = %f, S2 = %f\n", S1, S2);
+						
+						VL0L = VL0/L;
+						
+						A1 = (S2 * (IF-IX0) - 1*(-VL0L))/(S1 * 1 - 1 * S2);
+						A2 = ((-VL0L) * 1 - (IF-IX0) * S1) / (S1 * 1 - 1 * S2);
+						printf (" A1 = %f, A2 = %f\n", A1, A2);
+						printf (" IL(t) = %.3f + (%.3f)e^(%.3f)t + %.3fe^(%.3f)t A\n", IF, A1, S1, A2, S2);
+						
+						//differentiation vl(t) = L*di/dt; di/dt = a1*s1; d/dt IF = 0~
+						A = A1 * S1 * L;
+						B = A2 * S2 * L;
+						printf (" vR(t) = %.3f e^ (%.3f)t + %.3fe^(%.3f)t V\n", A, S1, B, S2);
+						
+						//IR= vR/R
+						A = A / R;
+						B = A / R;
+						printf (" iR(t) = %.3f e^ (%.3f)t + %.3fe^(%.3f)t V\n", A, S1, B, S2);
+					}
+				}
+				
+				//step 1.2- para, underdamped
+				else if (ALPHA < OMEGA) {
+					
+					//nat or step
+					printf ("PLEASE ENTER response:\n 1: natural\n 2: step \n", resp);
+					scanf ("%d", &resp);
+					
+					if (resp == 1) {
+										
+						//step 1.2.1 PARA, UNDER, NATURAL - pun //B1, B2~
+						printf ("PLEASE ENTER Vx(0) and IC(0) \n");
+						scanf ("%f %f", &VX0, &IC0);
+										
+						printf (" R = %f, L = %f, C = %f \n", R,L,C);
+						printf (" Vx (0) = %f\n", VX0 );
+															
+						WD = sqrt ( OMEGA * OMEGA - ALPHA * ALPHA);
+										
+						B1 = VX0;
+						B2 = IC0/C + ALPHA * B1/WD;
+						printf (" B1 = %f, B2 = %f\n", B1, B2);
+						printf (" V(t) = ((%.3f)cos (%.3f)t + (%.3f) sin (%.3f) t) e^(-%.3f)t\n", B1, WD, B2, WD, ALPHA);
+						
+						//i=V/R
+						A = B1 / R;
+						B = B2 / R;
+						printf (" IR(t) = ((%.3f)cos (%.3f)t + (%.3f) sin (%.3f) t) e^(-%.3f)t\n A\n", A, WD, B, WD, ALPHA);
+						
+					} else {
+						
+						//step 1.2.2 pus
+						printf ("PLEASE ENTER Ix(0), If AND VL(0) \n");
+						scanf ("%f %f %f", &IX0, &IF, VL0);
+						printf (" Ix(0) = %f, If = %f\n",IX0, IF );
+						WD = sqrt ( OMEGA * OMEGA - ALPHA * ALPHA);
+										
+						B1 = IF + IX0;
+						B2 = VL0/L/WD + ALPHA* B1/WD;
+						printf (" B1 = %f, B2 = %f\n", B1, B2);
+						printf (" IL(t) = %.3f + (%.3f)cos (%.3f)t + (%.3f) sin (%.3f) t) e^(-%.3f)t, UNIT:A\n", IF, B1, WD, B2, WD, ALPHA);
+						
+						//VL = Ldi/dt differentiation vl(t) = L*di/dt; di/dt = a1*s1; d/dt IF = 0~ 
+						A = A1 * WD * L;
+						B = A2 * WD * L;
+						printf (" vR(t) = ((-%.3f)sin (%.3f)t + (%.3f) cos (%.3f) t) e^(-%.3f)t\n v\n", A, WD, B, WD, ALPHA);
+						
+						//iR=V/R
+						A = B1 / R;
+						B = B2 / R;
+						printf (" IR(t) = ((-%.3f)sin (%.3f)t + (%.3f) cos (%.3f) t) e^(-%.3f)t\n A\n", A, WD, B, WD, ALPHA);
+						
+					}
+				}
+				
+				//step 1.3- para, CRITICALLY DAMPED 
+				else if (ALPHA = OMEGA){
+					//natural or step
+					printf ("PLEASE ENTER response:\n 1: natural \n 2: step \n", resp);
+					scanf ("%d", &resp);
+					
+					if (resp == 1) {
+						
+						////step 1.3.1 pcn
+						printf ("PLEASE ENTER Vx(0) and Ic(0) \n");
+						scanf ("%f %f", &VX0, &IC0);
+									
+						printf (" R = %f, L = %f, C = %f \n", R,L,C);
+						printf (" Vx (0) = %f\n",VX0 );
+														
+						D2 = VX0;
+						D1 = IC0/C + ALPHA * D2;
+						printf (" D1 = %f, D2 = %f\n", D1, D2);
+						printf (" VR(t) = ((%.3f)t + %.3f) e^(-%.3f)t\n", D1, D2, ALPHA);
+						
+						//IR= vR/R
+						A = D1 / R;
+						B = D2 / R;
+						printf (" IR(t) = ((%.3f)t + %.3f) e^(-%.3f)t\n", A, B, ALPHA);
+
+						
+						
+					} else {
+						
+						////step 1.3.2 pcs ~
+						printf ("PLEASE ENTER IX(0), If, and VL(0) - note x is the component-EX:L,C \n", IX0, IF, VL0);
+						scanf ("%f %f %f", &IX0, &IF, &VL0);	
+						printf (" R = %f, L = %f, C = %f \n", R,L,C);
+						printf (" ix (0) = %f, If = %f\n",IX0, IF );				
+						
+						D2 = IX0;
+						D1 = VL0/L + ALPHA * D2;
+						printf (" D1 = %f, D2 = %f\n", D1, D2);
+						printf (" IL(t) = %.3f + ((%.3f)t + %.3f) e^(-%.3f)t\n", IF, D1, D2, ALPHA);
+						
+						//VL = Ldi/dt differentiation vl(t) = L*di/dt; di/dt = a1*s1; d/dt IF = 0~ 
+						
+						printf (" VL(t) = ((%.3f)(e^(-%.3f)t)(-(%.3f)t + %.3f) e^(-%.3f)t\n", D1, ALPHA, ALPHA, D1, D2);
+						
+						//iR=V/R
+						A = D1 / R;
+						
+						printf (" IR(t) = ((%.3f)(e^(-%.3f)t)(-(%.3f)t + %.3f) e^(-%.3f)t\n", A, ALPHA, ALPHA, D1, D2);
+					}
+				}
+					
+													
+			}
+			
+			//// step 2 - series
+			else if (conf == 2) {	
+				printf ("PLEASE ENTER R, L, C \n");
+				scanf ("%f %f %f", &R, &L, &C);
+				
+				ALPHA = (float)R/ (2 * (float)L);
+				OMEGA = 1 / (sqrt((float) C * (float)L));
+				printf ("ALPHA = %f \n" , ALPHA);
+				printf ("OMEGA = %f \n" , OMEGA);
+				
+				S1 = - ALPHA + sqrt (ALPHA * ALPHA - OMEGA * OMEGA);
+				S2 = - ALPHA - sqrt (ALPHA * ALPHA - OMEGA * OMEGA);
+				
+				//step 2.1 - series, OVER DAMPED
+				if (ALPHA > OMEGA) {
+					
+					printf ("PLEASE ENTER response:\n 1: natural\n 2: step \n", resp);
+					scanf ("%d", &resp);
+					
+					if (resp == 1) {
+						
+						////step 2.1.1 son ~
+						printf ("PLEASE ENTER ix(0), vL(0) \n");
+						scanf ("%f %f", &IX0, &VL0);
+				
+						printf (" R = %f, L = %f, C = %f \n", R,L,C);
+						printf (" ix = %f, VL(0) = %f \n", IX0, VL0);	
+						
+						printf (" S1 = %f, S2 = %f\n", S1, S2);
+						
+						VL0L = VL0/L;
+						
+						A1 = (1 *  -VL0L - S2 * (-IX0))/(1 * S2 - 1 * S1);
+						A2 = ((-IX0) * S1 - (-VL0L) * 1) / (1 * S2 - S1 * 1);
+						printf (" A1 = %f, A2 = %f\n", A1, A2);
+						printf (" IR(t) = (%.3f)e^(%.3f)t + %.3fe^(%.3f)t\n", A1, S1, A2, S2);
+						
+						//VR = IR
+						A = B1 * R;
+						B = B2 * R;
+						printf (" VR(t) = %.3f e^ (%.3f)t + %.3fe^(%.3f)t V\n", A, WD, B, WD);
+						
+					} else {
+						
+						//step 2.1.2 sos **** ~
+						printf ("PLEASE ENTER Ic(0), Vx(0) and Vf  \n"  );
+						scanf ("%f %f %f", &IC0, &VX0, &VF);
+						printf ("Ic(0) = %f, Vx (0) = %f, Vf = %f\n", VX0, IC0, VF );		
+						printf (" R = %f, L = %f, C = %.8f \n", R,L,C);
+															
+						printf (" S1 = %f, S2 = %f\n", S1, S2);
+						
+						IC0C = IC0/C;
+						
+						A1 = (S2 * (VF-VX0) - 1*(-IC0C))/(S1 * 1 - 1 * S2);
+						A2 = ((-IC0C) * 1 - (VF-VX0) * S1) / (S1 * 1 - 1 * S2);
+						printf (" A1 = %f, A2 = %f\n", A1, A2);
+						printf (" Vc(t) = %.3f + (%.3f)e^(%.3f)t + (%.3f)e^(%.3f)t V\n", VF, A1, S1, A2, S2);
+						
+						//differentiation I(t) = Ic(t) = C*dV/dt
+						A = C * A1 * S1;
+						B = C * A2 * S2;
+						printf (" I(t) = %.4f e^ (%.3f)t + %.4fe^(%.3f)t A\n", A, S1, B, S2); 												
+						
+						// vR(t) = I(t) * R
+						A = A * R;
+						B = B * R;
+												
+						printf (" vR(t) = %.4f e^ (%.3f)t + %.4fe^(%.3f)t V\n ", A, S1, B, S2);
+					}
+				}
+					
+				
+				
+				//step 2.2 - ser, under
+				else if (ALPHA < OMEGA) {
+					printf ("PLEASE ENTER response:\n 1: natural\n 2: step \n", resp);
+					scanf ("%d", &resp);
+					
+					if (resp == 1) {
+						
+						////step 2.2.1 sun ~
+						printf ("PLEASE ENTER Ix(0) AND VL(0) \n", IX0, VL0);
+						scanf ("%f %f", &IX0,&VL0);
+										
+						printf (" R = %f, L = %f, C = %f \n", R,L,C);
+						printf (" Ix (0) = %f\n VL (0) = %f\n",IX0, VL0 );
+															
+						WD = sqrt ( OMEGA * OMEGA - ALPHA * ALPHA);
+										
+						B1 = IX0;
+						B2 = VL0/L + ALPHA * B1/WD;
+						printf (" B1 = %f, B2 = %f\n", B1, B2);
+						printf (" I(t) = ((%.3f)cos (%.3f)t + (%.3f) sin (%.3f) t) e^(-%.3f)t\n", B1, WD, B2,WD, ALPHA);
+						
+						//V = IR
+						A = B1 * R;
+						B = B2 * R;
+						printf (" VR(t) = ((%.3f)cos (%.3f)t + (%.3f) sin (%.3f) t) e^(-%.3f)t\n", B1, WD, B2,WD, ALPHA);
+						
+					} else {
+						
+						//step 2.2.2 sus 
+					
+						printf ("PLEASE ENTER Vx(0), Vf, and Ic(0) - note x is the component-EX:L,C \n", VX0, VF, IC0);
+						scanf ("%f %f %f", &VX0, &VF, &IC0);	
+						printf (" R = %f, L = %f, C = %f \n", R,L,C);
+						printf (" ix (0) = %f, If = %f\n", VX0, VF, IC0);				
+						
+						B1 = VF + VX0;
+						B2 = IC0/C + ALPHA * B1/WD;
+						printf (" B1 = %f, B2 = %f\n", B1, B2);
+						printf (" V(t) = ((%.3f)cos (%.3f)t + (%.3f) sin (%.3f) t) e^(-%.3f)t\n", VF, B1, WD, B2, WD, ALPHA);
+						
+						//iR(t) = c dVc/dt; 
+					}
+				}						
+				
+				//step 2.3- series, critical
+				else if (ALPHA = OMEGA){
+					printf ("PLEASE ENTER response:\n 1: natural\n 2: step \n", resp);
+					scanf ("%d", &resp);
+					
+					if (resp == 1) {
+						
+						////step 2.3.1 scn 
+						printf ("PLEASE ENTER Ix(0) AND VL(0) \n", IX0,VL0);
+						scanf ("%f %f", &IX0, &VL0);
+									
+						printf (" R = %f, L = %f, C = %f \n", R,L,C);
+						printf (" Ix (0) = %f\n",IX0 );
+														
+						D2 = IX0;
+						D1 = VL0/L + ALPHA * D2;
+						printf (" D1 = %f, D2 = %f\n", D1, D2);
+						printf (" IR(t) = ((%.3f)t + %.3f) e^(-%.3f)t\n", D1, D2, ALPHA);
+						
+						A = D1 * R;
+						B = D2 * R;
+						printf (" vR(t) = ((%.3f)t + %.3f) e^(-%.3f)t\n", A, B, ALPHA);
+						
+					} else {
+						
+						////step 2.3.2 scs
+					
+						printf ("PLEASE ENTER Vx(0) and Vf \n", VX0, VF);
+						scanf ("%f %f", &VX0, &VF);
+						printf (" Vx (0) = %f, Vf = %f\n",VC0, VF );
+						
+						D2 = VF + V0;
+						D1 = IC0/C + ALPHA * D2;
+						printf (" D1 = %f, D2 = %f\n", D1, D2);
+						printf (" VL(t) = %.3f + ((%.3f)t + %.3f) e^(-%.3f)t\n", VF, D1, D2, ALPHA);
+						
+						//Ic(t)=cdv/dt
+						printf (" IL(t) = ((%.3f)(e^(-%.3f)t)(-(%.3f)t + %.3f) e^(-%.3f)t\n", D1, ALPHA, ALPHA, D1, D2);
+						
+						//vR(t) = IR
+						A = D1 * R;
+						
+						printf (" vR(t) = ((%.3f)(e^(-%.3f)t)(-(%.3f)t + %.3f) e^(-%.3f)t\n", D1, ALPHA, ALPHA, D1, D2);
+						
+						
+						
+					}
+				}
+										
+					
+				
+			}
+			else if (conf == 3) {
+				// 3.RL
+				printf ("PLEASE ENTER response:\n 1: natural\n 2: step \n", resp);
+				scanf ("%d", &resp);
+				
+				if (resp == 1){
+					//3.1 natural series RL
+					printf ("PLEASE ENTER R, L, IL(0) IN OHMS, H, AND A \n");
+					scanf ("%f %f %f", &R, &L, &IX0);
+					
+					A = VS/R;
+					B = IX0-A;
+					T = R/L;
+					C1 = IX0 * R;
+					
+					printf (" i(t) = (%.3f) e^ (-%.3f)t A\n", B, T);
+					printf (" v(t) = (%.3f) e^ -(%.3f)t V\n", C1, T);
+				}
+				else if (resp == 2){
+					//3.2 step series RL
+					printf ("PLEASE ENTER R, L, IL(0), Vs \n");
+					scanf ("%f %f %f %f", &R, &L, &IX0, &VS);
+					
+					A = VS/R;
+					B = IX0-A;
+					T = R/L;
+					C1 = IX0 * R;
+					
+					printf (" i(t) = %.3f + (%.3f) e^ (-%.3f)t \n", A, B, T);
+					printf (" v(t) = (%.3f - (%.3f)) e^ -(%.3f)t \n", VS, C1, T);
+				}
+			}
+			//config 4
+			else {
+				printf ("PLEASE ENTER response:\n 1: natural\n 2: step \n", resp);
+				scanf ("%d", &resp);
+				
+				if (resp == 1){
+					//4.1 natual series RC		
+					printf ("PLEASE ENTER R, C, Vc(0) IN OHMS, F, AND A\n");
+					scanf ("%f %f %f", &R, &C, &VX0);
+					
+					A = IS * R;
+					B = VX0-A;
+					T = 1 / (R * C);
+					C1 = VX0/R;
+					
+					printf (" v(t) = (%.3f) e^ -(%.3f)t V\n", B, T);
+					printf (" i(t) =  (%.4f) e^ -(%.3f)t A\n", C1, T);	
+				}
+				else if (resp == 2){
+					//4.2 step series RC
+					printf ("PLEASE ENTER R, C, Vc(0), Is \n");
+					scanf ("%f %f %f %f", &R, &C, &VX0, &IS);
+					
+					A = IS * R;
+					B = VX0-A;
+					T = 1 / (R * C);
+					C1 = VX0/R;
+					
+					printf (" v(t) = %.3f + (%.3f) e^ -(%.3f)t \n", A, B, T);
+					printf (" i(t) = (%.3f - (%.3f)) e^ -(%.3f)t \n", IS, C1, T);	
+				}
+			}
+		printf ("\nType 1 to start a session and 2 to end the session. \n");	
+		}
+		else if (lpcontrol == 2){
+			break;
+		}
+		else {
+			;
+		}
+	}
+	
+	
+	return 0;
+}
